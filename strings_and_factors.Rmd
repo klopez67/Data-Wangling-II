@@ -183,6 +183,92 @@ data_marj |>
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+# NYC Resturant Insepctions
+
+```{r}
+data("rest_inspec")
+head(rest_inspec)
+```
+Pivoting Wider to make it reader friendly
+```{r}
+
+rest_inspec |> 
+  group_by(boro, grade) |> 
+  summarize(n = n()) |> 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+We can simplify things more by removing boroughs with missing values. 
+```{r}
+rest_inspec =
+  rest_inspec |>
+  filter(grade %in% c("A", "B", "C"), boro != "Missing") |> 
+  mutate(boro = str_to_title(boro))
+
+head(rest_inspec)
+```
+
+Lets focous on pizza places in dba "Pizza"
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "Pizza")) |> 
+  group_by(boro, grade) |> 
+  summarize(n = n()) |> 
+  pivot_wider(names_from = grade, values_from = n)
 
 
+```
+
+We know there are more pizza places and not all variables in dba have upper case Pizza. So we can mutate dba variable to keep the uppercase letter first but 
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |> 
+  group_by(boro, grade) |> 
+  summarize(n = n()) |> 
+  pivot_wider(names_from = grade, values_from = n)
+
+```
+
+We can make a visualization to show which boro has the most pizza places 
+
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+
+We can make change the order of the axis by using fct_infreq where highest frequency in left 
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |>
+  mutate(boro = fct_infreq(boro)) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+ 
+WRONG EXAMPLE * DO NOT DO* We can rename a boro or axis name by using str_replace(). This will cause the borough to then be converted the result back to a string 
+
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |>
+  mutate(
+    boro = fct_infreq(boro),
+    boro = str_replace(boro, "Manhattan", "The City")) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+
+INSTEAD TO RENAME FACTOR VARIABLES: use fct_recode
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) |>
+  mutate(
+    boro = fct_infreq(boro),
+    boro = fct_recode(boro, "The City" = "Manhattan")) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar()
+```
+
+In a regression: 
 

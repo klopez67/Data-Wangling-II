@@ -289,3 +289,176 @@ data_marj |>
 ```
 
 ![](strings_and_factors_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+# NYC Resturant Insepctions
+
+``` r
+data("rest_inspec")
+head(rest_inspec)
+```
+
+    ## # A tibble: 6 × 18
+    ##   action           boro  building  camis critical_flag cuisine_description dba  
+    ##   <chr>            <chr> <chr>     <int> <chr>         <chr>               <chr>
+    ## 1 Violations were… MANH… 425      4.15e7 Not Critical  Italian             SPIN…
+    ## 2 Violations were… MANH… 37       4.12e7 Critical      Korean              SHIL…
+    ## 3 Violations were… MANH… 15       4.11e7 Not Critical  CafÃ©/Coffee/Tea    CITY…
+    ## 4 Violations were… MANH… 35       4.13e7 Critical      Korean              MADA…
+    ## 5 Violations were… MANH… 1271     5.00e7 Critical      American            THE …
+    ## 6 Violations were… MANH… 155      5.00e7 Not Critical  Donuts              DUNK…
+    ## # ℹ 11 more variables: inspection_date <dttm>, inspection_type <chr>,
+    ## #   phone <chr>, record_date <dttm>, score <int>, street <chr>,
+    ## #   violation_code <chr>, violation_description <chr>, zipcode <int>,
+    ## #   grade <chr>, grade_date <dttm>
+
+Pivoting Wider to make it reader friendly
+
+``` r
+rest_inspec |> 
+  group_by(boro, grade) |> 
+  summarize(n = n()) |> 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## `summarise()` has grouped output by 'boro'. You can override using the
+    ## `.groups` argument.
+
+    ## # A tibble: 6 × 8
+    ## # Groups:   boro [6]
+    ##   boro              A     B     C `Not Yet Graded`     P     Z  `NA`
+    ##   <chr>         <int> <int> <int>            <int> <int> <int> <int>
+    ## 1 BRONX         13688  2801   701              200   163   351 16833
+    ## 2 BROOKLYN      37449  6651  1684              702   416   977 51930
+    ## 3 MANHATTAN     61608 10532  2689              765   508  1237 80615
+    ## 4 Missing           4    NA    NA               NA    NA    NA    13
+    ## 5 QUEENS        35952  6492  1593              604   331   913 45816
+    ## 6 STATEN ISLAND  5215   933   207               85    47   149  6730
+
+We can simplify things more by removing boroughs with missing values.
+
+``` r
+rest_inspec =
+  rest_inspec |>
+  filter(grade %in% c("A", "B", "C"), boro != "Missing") |> 
+  mutate(boro = str_to_title(boro))
+
+head(rest_inspec)
+```
+
+    ## # A tibble: 6 × 18
+    ##   action           boro  building  camis critical_flag cuisine_description dba  
+    ##   <chr>            <chr> <chr>     <int> <chr>         <chr>               <chr>
+    ## 1 Violations were… Manh… 1271     5.00e7 Critical      American            THE …
+    ## 2 Violations were… Manh… 37       4.12e7 Not Critical  Korean              SHIL…
+    ## 3 Violations were… Manh… 53       4.04e7 Not Critical  Korean              HAN …
+    ## 4 Violations were… Manh… 287      4.16e7 Not Critical  American            BRGR 
+    ## 5 Violations were… Manh… 800      4.11e7 Not Critical  Pizza               WALD…
+    ## 6 Violations were… Manh… 121      5.00e7 Not Critical  CafÃ©/Coffee/Tea    LUNA 
+    ## # ℹ 11 more variables: inspection_date <dttm>, inspection_type <chr>,
+    ## #   phone <chr>, record_date <dttm>, score <int>, street <chr>,
+    ## #   violation_code <chr>, violation_description <chr>, zipcode <int>,
+    ## #   grade <chr>, grade_date <dttm>
+
+Lets focous on pizza places in dba “Pizza”
+
+``` r
+rest_inspec |> 
+  filter(str_detect(dba, "Pizza")) |> 
+  group_by(boro, grade) |> 
+  summarize(n = n()) |> 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## `summarise()` has grouped output by 'boro'. You can override using the
+    ## `.groups` argument.
+
+    ## # A tibble: 5 × 3
+    ## # Groups:   boro [5]
+    ##   boro              A     B
+    ##   <chr>         <int> <int>
+    ## 1 Bronx             9     3
+    ## 2 Brooklyn          6    NA
+    ## 3 Manhattan        26     8
+    ## 4 Queens           17    NA
+    ## 5 Staten Island     5    NA
+
+We know there are more pizza places and not all variables in dba have
+upper case Pizza. So we can mutate dba variable to keep the uppercase
+letter first but
+
+``` r
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |> 
+  group_by(boro, grade) |> 
+  summarize(n = n()) |> 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## `summarise()` has grouped output by 'boro'. You can override using the
+    ## `.groups` argument.
+
+    ## # A tibble: 5 × 4
+    ## # Groups:   boro [5]
+    ##   boro              A     B     C
+    ##   <chr>         <int> <int> <int>
+    ## 1 Bronx          1170   305    56
+    ## 2 Brooklyn       1948   296    61
+    ## 3 Manhattan      1983   420    76
+    ## 4 Queens         1647   259    48
+    ## 5 Staten Island   323   127    21
+
+We can make a visualization to show which boro has the most pizza places
+
+``` r
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+
+![](strings_and_factors_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+We can make change the order of the axis by using fct_infreq where
+highest frequency in left
+
+``` r
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |>
+  mutate(boro = fct_infreq(boro)) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+
+![](strings_and_factors_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+WRONG EXAMPLE \* DO NOT DO\* We can rename a boro or axis name by using
+str_replace(). This will cause the borough to then be converted the
+result back to a string
+
+``` r
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) |>
+  mutate(
+    boro = fct_infreq(boro),
+    boro = str_replace(boro, "Manhattan", "The City")) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+
+![](strings_and_factors_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+INSTEAD TO RENAME FACTOR VARIABLES: use fct_recode
+
+``` r
+rest_inspec |> 
+  filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) |>
+  mutate(
+    boro = fct_infreq(boro),
+    boro = fct_recode(boro, "The City" = "Manhattan")) |>
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar()
+```
+
+![](strings_and_factors_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+In a regression:
