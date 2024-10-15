@@ -10,6 +10,9 @@ library(rvest)
 library(p8105.datasets)
 library(stringr)
 library(forcats)
+library(rvest)
+library(dplyr)
+library(tidyverse)
 
 ```
 
@@ -116,3 +119,70 @@ as.numeric(vec_sex)
  IN GENERAL: always recode the factor variables to the levels with the order of the data. Anytime you are dealing with a factor use the package forcats 
 
 # National Survey on Drug Use and Health data 
+
+revisiting example from before: 
+```{r echo=TRUE}
+library(rvest)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+nsduh_url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+table_marj = 
+  read_html(nsduh_url) |> 
+  html_table() |> 
+  first() |>
+  slice(-1)
+
+head(table_marj)
+```
+
+Tidy the dataset: 
+
+- Need to split age variable by using seperate() splitting on the charcater of an open paranthesis ( ) **make sure to use \\ since ( ) is a special character**
+- and some of the values in percent need to convert to numeric 
+  - mutate() and str_replace() to get rid of the parenthesis 
+- Go from wide format to long format using pivot_longer()
+- get rid of (P Value) from column names  using select() 
+
+```{r}
+data_marj = 
+  table_marj |>
+  select(-contains("P Value")) |>
+  pivot_longer(
+    -State,
+    names_to = "age_year", 
+    values_to = "percent") |>
+  separate(age_year, into = c("age", "year"), sep = "\\(") |>
+  mutate(
+    year = str_replace(year, "\\)", ""),
+    percent = str_replace(percent, "[a-c]$", ""),
+    percent = as.numeric(percent)) |>
+  filter(!(State %in% c("Total U.S.", "Northeast", "Midwest", "South", "West")))
+
+head(data_marj)
+```
+We used stringr and regular expressions a couple of times above:
+
+- in separate, we split age and year at the open parentheses using "\\("
+- we stripped out the close parenthesis in mutate
+- to remove character superscripts, we replaced any character using "[a-c]$" then use "" to see if there is anything else to check if there is anything else after a-c that need to be cleaned -> R would give a warning message if there was
+
+Now if we want to look at only data for 12-17 age group; readable plot; treating state as a factor to reorder according to the median percent value 
+
+- use the detail axis.test.x = element_text(angle = ##, hjust = 1) to rotate the anxis labels
+
+```{r}
+data_marj |>
+  filter(age == "12-17") |> 
+  mutate(State = fct_reorder(State, percent)) |> 
+  ggplot(aes(x = State, y = percent, color = year)) + 
+    geom_point() + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+
+
