@@ -1,0 +1,11 @@
+---
+title: "String and Factors"
+author: "Kimberly Lopez"
+date: "2024-10-15"
+output: github_document
+---
+Load libraries 
+```{r}
+
+```
+
