@@ -9,6 +9,7 @@ Load libraries
 library(rvest)
 library(p8105.datasets)
 library(stringr)
+library(forcats)
 ```
 
 # Strings and Regex
@@ -90,4 +91,74 @@ str_detect(string_vec, "^[0-9][a-zA-Z]")
 
     ## [1]  TRUE  TRUE FALSE  TRUE
 
-The character . matches anything
+The character . matches anything. Suppose we want to detect any
+character with 7 and 11 with “.”
+
+``` r
+string_vec = c(
+  'Its 7:11 in the evening',
+  'want to go to 7-11?',
+  'my flight is AA711',
+  'NetBios: scanning ip 203.167.114.66'
+  )
+
+str_detect(string_vec, "7.11")
+```
+
+    ## [1]  TRUE  TRUE FALSE  TRUE
+
+If your looking for a “special” charcater like: \[ \], ( ), and . You
+have to indicate they are special using “". However,  is also a special
+character so you have to put two \\
+
+``` r
+string_vec = c(
+  'The CI is [2, 5]',
+  ':-]',
+  ':-[',
+  'I found the answer on pages [6-7]'
+  )
+
+str_detect(string_vec, "\\[")
+```
+
+    ## [1]  TRUE FALSE  TRUE  TRUE
+
+# Thoughts on Factors
+
+``` r
+vec_sex = factor(c("male", "male", "female", "female"))
+vec_sex
+```
+
+    ## [1] male   male   female female
+    ## Levels: female male
+
+``` r
+as.numeric(vec_sex)
+```
+
+    ## [1] 2 2 1 1
+
+To relevel based on “reference” category in an analysis, you can use the
+fct_relevl() function to change the underlying level structure
+
+``` r
+vec_sex = fct_relevel(vec_sex, "male")
+vec_sex
+```
+
+    ## [1] male   male   female female
+    ## Levels: male female
+
+``` r
+as.numeric(vec_sex)
+```
+
+    ## [1] 1 1 2 2
+
+IN GENERAL: always recode the factor variables to the levels with the
+order of the data. Anytime you are dealing with a factor use the package
+forcats
+
+# National Survey on Drug Use and Health data
